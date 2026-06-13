@@ -1,0 +1,110 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Pytest
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# Mypy
+# =========================
+.mypy_cache/
+
+# =========================
+# Ruff
+# =========================
+.ruff_cache/
+
+# =========================
+# Build Artifacts
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Alembic
+# =========================
+# Keep migrations tracked
+# Do NOT ignore alembic/versions/
+
+# =========================
+# Docker
+# =========================
+docker-data/
+*.pid
+
+# =========================
+# Local SQLite (if used)
+# =========================
+*.db
+*.sqlite3
+
+# =========================
+# Qdrant Local Storage
+# =========================
+qdrant_storage/
+
+# =========================
+# Temporary Files
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Secrets
+# =========================
+secrets/
+credentials.json
+service-account.json
+
+# =========================
+# Generated Files
+# =========================
+*.csv
+*.xlsx
+*.parquet
