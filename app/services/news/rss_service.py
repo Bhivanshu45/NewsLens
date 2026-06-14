@@ -9,6 +9,7 @@
 from app.core.rss_feeds import RSS_FEEDS
 from app.services.news.schemas import ParsedArticle
 import feedparser
+from dateutil import parser
 
 
 class RSSService:
@@ -33,12 +34,22 @@ class RSSService:
                 if not title or not url:
                     continue
 
+                published_at = None
+
+                if entry.get("published"):
+                    try:
+                        published_at = parser.parse(
+                            entry.get("published")
+                        )
+                    except Exception:
+                        pass
+
                 articles.append(
                     ParsedArticle(
                         title=title,
                         url=url,
                         source=feed.feed.get("title", "Unknown"),
-                        published_at=entry.get("published"),
+                        published_at=published_at,
                         content=entry.get("summary", ""),
                     )
                 )

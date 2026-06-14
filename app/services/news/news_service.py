@@ -1,20 +1,15 @@
-# Responsibility:
-
-# Take Parsed Articles
-# Check Duplicates
-# Store In PostgreSQL
-
-# No RSS parsing.
-
-from app.services.news.rss_service import RSSService
 from sqlalchemy.orm import Session
+
 from app.db.models.article import Article
+from app.services.news.rss_service import RSSService
+
 
 class NewsService:
-    def __init__(self):
+    def __init__(self, db: Session):
+        self.db = db
         self.rss_service = RSSService()
 
-    def ingest_articles(self, db:Session):
+    def ingest_articles(self):
         articles = self.rss_service.fetch_and_parse_feeds()
 
         inserted = 0
@@ -22,7 +17,7 @@ class NewsService:
 
         for article in articles:
             existing_article = (
-                db.query(Article)
+                self.db.query(Article)
                 .filter(Article.url == article.url)
                 .first()
             )
@@ -36,17 +31,69 @@ class NewsService:
                 content=article.content,
                 source=article.source,
                 url=article.url,
-                published_at=None
+                published_at=article.published_at,
             )
 
-            db.add(article_data)
+            self.db.add(article_data)
 
             inserted += 1
 
-        db.commit()
+        self.db.commit()
 
         return {
             "fetched": len(articles),
             "inserted": inserted,
             "skipped": skipped,
         }
+
+    def get_articles(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        source: str | None = None,
+    ):
+        offset = (page - 1) * limit
+
+        query = self.db.query(Article)
+
+        if source:
+            query = query.filter(
+                Article.source == source
+            )
+
+        return (
+            query
+            .order_by(Article.published_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
+    def get_article_by_id(
+        self,
+        article_id: int,
+    ):
+        return (
+            self.db.query(Article)
+            .filter(Article.id == article_id)
+            .first()
+        )
+
+    def search_articles(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 20,
+    ):
+        offset = (page - 1) * limit
+
+        return (
+            self.db.query(Article)
+            .filter(
+                Article.title.ilike(f"%{query}%")
+            )
+            .order_by(Article.published_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
