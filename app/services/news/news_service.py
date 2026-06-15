@@ -4,12 +4,24 @@ from app.db.models.article import Article
 from app.services.news.rss_service import RSSService
 from app.services.llm.groq_service import GroqService
 
+from app.services.embeddings.embedding_service import (
+    EmbeddingService,
+)
+
+from app.services.embeddings.qdrant_service import (
+    QdrantService,
+)
+
 
 class NewsService:
     def __init__(self, db: Session):
         self.db = db
+
         self.rss_service = RSSService()
         self.groq_service = GroqService()
+
+        self.embedding_service = EmbeddingService()
+        self.qdrant_service = QdrantService()
 
     def ingest_articles(self):
         articles = self.rss_service.fetch_and_parse_feeds()
@@ -18,6 +30,7 @@ class NewsService:
         skipped = 0
 
         for article in articles:
+
             existing_article = (
                 self.db.query(Article)
                 .filter(Article.url == article.url)
@@ -29,7 +42,10 @@ class NewsService:
                 continue
 
             summary = None
-            print(f"Generating summary for: {article.title}")
+
+            print(
+                f"Generating summary for: {article.title}"
+            )
 
             try:
                 if article.content:
@@ -41,7 +57,9 @@ class NewsService:
                     )
 
             except Exception as e:
-                print(f"Summary generation failed: {e}")
+                print(
+                    f"Summary generation failed: {e}"
+                )
 
             article_data = Article(
                 title=article.title,
@@ -53,6 +71,45 @@ class NewsService:
             )
 
             self.db.add(article_data)
+
+            # Get DB-generated ID
+            self.db.flush()
+
+            try:
+
+                text = f"""
+                Title:
+                {article.title}
+
+                Summary:
+                {summary or ''}
+
+                Content:
+                {article.content}
+                """
+
+                vector = (
+                    self.embedding_service
+                    .generate_embedding(text)
+                )
+
+                payload = {
+                    "article_id": article_data.id,
+                    "title": article.title,
+                    "source": article.source,
+                    "url": article.url,
+                }
+
+                self.qdrant_service.upsert_article(
+                    article_id=article_data.id,
+                    vector=vector,
+                    payload=payload,
+                )
+
+            except Exception as e:
+                print(
+                    f"Embedding indexing failed: {e}"
+                )
 
             inserted += 1
 
@@ -81,7 +138,9 @@ class NewsService:
 
         return (
             query
-            .order_by(Article.published_at.desc())
+            .order_by(
+                Article.published_at.desc()
+            )
             .offset(offset)
             .limit(limit)
             .all()
@@ -93,7 +152,9 @@ class NewsService:
     ):
         return (
             self.db.query(Article)
-            .filter(Article.id == article_id)
+            .filter(
+                Article.id == article_id
+            )
             .first()
         )
 
@@ -108,10 +169,59 @@ class NewsService:
         return (
             self.db.query(Article)
             .filter(
-                Article.title.ilike(f"%{query}%")
+                Article.title.ilike(
+                    f"%{query}%"
+                )
             )
-            .order_by(Article.published_at.desc())
+            .order_by(
+                Article.published_at.desc()
+            )
             .offset(offset)
             .limit(limit)
             .all()
         )
+
+    def semantic_search(
+        self,
+        query: str,
+        limit: int = 5,
+    ):
+        vector = (
+            self.embedding_service
+            .generate_embedding(query)
+        )
+
+        results = (
+            self.qdrant_service
+            .search(
+                vector=vector,
+                limit=limit,
+            )
+        )
+
+        article_ids = [
+            result.payload["article_id"]
+            for result in results.points
+        ]
+
+        if not article_ids:
+            return []
+
+        articles = (
+            self.db.query(Article)
+            .filter(
+                Article.id.in_(article_ids)
+            )
+            .all()
+        )
+
+        article_map = {
+            article.id: article
+            for article in articles
+        }
+
+        return [
+            article_map[article_id]
+            for article_id in article_ids
+            if article_id in article_map
+        ]

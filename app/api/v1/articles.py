@@ -9,6 +9,7 @@ from app.api.dependencies import get_db
 from app.services.news.news_service import NewsService
 from app.services.news.schemas import ArticleResponse
 
+
 router = APIRouter(
     prefix="/articles",
     tags=["Articles"]
@@ -63,6 +64,27 @@ def search_articles(
     return service.search_articles(
         query=q,
         page=page,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/semantic-search",
+    response_model=list[ArticleResponse]
+)
+def semantic_search(
+    q: str,
+    limit: int = Query(
+        default=5,
+        ge=1,
+        le=20,
+    ),
+    db: Session = Depends(get_db),
+):
+    service = NewsService(db)
+
+    return service.semantic_search(
+        query=q,
         limit=limit,
     )
 
