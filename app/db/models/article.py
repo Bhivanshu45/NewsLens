@@ -20,6 +20,11 @@ class Article(Base):
         nullable=False
     )
 
+    summary: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
     source: Mapped[str] = mapped_column(
         String(255),
         nullable=False

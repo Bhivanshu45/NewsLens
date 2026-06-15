@@ -17,6 +17,7 @@ class ArticleResponse(BaseModel):
     id: int
     title: str
     content: str | None
+    summary: str | None
     source: str
     url: str
     published_at: datetime | None

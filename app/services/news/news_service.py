@@ -2,12 +2,14 @@ from sqlalchemy.orm import Session
 
 from app.db.models.article import Article
 from app.services.news.rss_service import RSSService
+from app.services.llm.groq_service import GroqService
 
 
 class NewsService:
     def __init__(self, db: Session):
         self.db = db
         self.rss_service = RSSService()
+        self.groq_service = GroqService()
 
     def ingest_articles(self):
         articles = self.rss_service.fetch_and_parse_feeds()
@@ -26,9 +28,25 @@ class NewsService:
                 skipped += 1
                 continue
 
+            summary = None
+            print(f"Generating summary for: {article.title}")
+
+            try:
+                if article.content:
+                    summary = (
+                        self.groq_service
+                        .generate_summary(
+                            article.content
+                        )
+                    )
+
+            except Exception as e:
+                print(f"Summary generation failed: {e}")
+
             article_data = Article(
                 title=article.title,
                 content=article.content,
+                summary=summary,
                 source=article.source,
                 url=article.url,
                 published_at=article.published_at,

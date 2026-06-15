@@ -2,13 +2,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str
+    app_name: str
 
-    DATABASE_URL: str
-    REDIS_URL: str
-    QDRANT_URL: str
+    database_url: str
+    redis_url: str
+    qdrant_url: str
 
-    GEMINI_API_KEY: str = ""
+    groq_api_key: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
