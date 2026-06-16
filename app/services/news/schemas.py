@@ -20,6 +20,7 @@ class ArticleResponse(BaseModel):
     summary: str | None
     source: str
     url: str
+    cluster_id: int | None
     published_at: datetime | None
     created_at: datetime
 

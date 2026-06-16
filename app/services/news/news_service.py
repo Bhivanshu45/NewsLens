@@ -11,6 +11,9 @@ from app.services.embeddings.embedding_service import (
 from app.services.embeddings.qdrant_service import (
     QdrantService,
 )
+from app.services.clustering.cluster_service import (
+    ClusterService,
+)
 
 
 class NewsService:
@@ -22,6 +25,8 @@ class NewsService:
 
         self.embedding_service = EmbeddingService()
         self.qdrant_service = QdrantService()
+
+        self.cluster_service = ClusterService(db)
 
     def ingest_articles(self):
         articles = self.rss_service.fetch_and_parse_feeds()
@@ -106,9 +111,58 @@ class NewsService:
                     payload=payload,
                 )
 
+                # -------------------------
+                # Cluster Assignment
+                # -------------------------
+
+                search_results = (
+                    self.qdrant_service.search(
+                        vector=vector,
+                        limit=5,
+                    )
+                )
+
+                similar_article = None
+                similarity_score = None
+
+                for result in search_results.points:
+
+                    payload = result.payload
+
+                    # Skip self
+                    if (
+                        payload["article_id"]
+                        == article_data.id
+                    ):
+                        continue
+
+                    similar_article = (
+                        self.db.query(Article)
+                        .filter(
+                            Article.id ==
+                            payload["article_id"]
+                        )
+                        .first()
+                    )
+
+                    similarity_score = result.score
+
+                    break
+
+                cluster_id = (
+                    self.cluster_service
+                    .assign_cluster(
+                        article=article_data,
+                        similar_article=similar_article,
+                        similarity_score=similarity_score,
+                    )
+                )
+
+                article_data.cluster_id = cluster_id
+
             except Exception as e:
                 print(
-                    f"Embedding indexing failed: {e}"
+                    f"Embedding / Clustering failed: {e}"
                 )
 
             inserted += 1

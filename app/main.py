@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.api.v1.health import router as health_router
 from app.api.v1.articles import router as articles_router
+from app.api.v1.clusters import router as cluster_router
 
 from contextlib import asynccontextmanager
 from app.workers.scheduler import scheduler
@@ -40,4 +41,10 @@ app.include_router(
     articles_router,
     prefix="/api/v1",
     tags=["Articles"]
+)
+
+app.include_router(
+    cluster_router,
+    prefix="/api/v1",
+    tags=["Clusters"]
 )
