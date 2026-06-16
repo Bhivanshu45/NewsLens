@@ -13,7 +13,7 @@ config = context.config
 # Inject database URL from .env
 config.set_main_option(
     "sqlalchemy.url",
-    settings.DATABASE_URL
+    settings.database_url
 )
 
 # Configure logging
@@ -28,7 +28,7 @@ def run_migrations_offline() -> None:
     """Run migrations in offline mode."""
 
     context.configure(
-        url=settings.DATABASE_URL,
+        url=settings.database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
