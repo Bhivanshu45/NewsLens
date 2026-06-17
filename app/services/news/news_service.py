@@ -160,6 +160,10 @@ class NewsService:
 
                 article_data.cluster_id = cluster_id
 
+                self.cluster_service.generate_cluster_summary(
+                    cluster_id
+                )
+
             except Exception as e:
                 print(
                     f"Embedding / Clustering failed: {e}"

@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, Text, String, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import relationship
 
 class Article(Base):
     __tablename__ = "articles"
@@ -39,6 +40,11 @@ class Article(Base):
     cluster_id: Mapped[int | None] = mapped_column(
         ForeignKey("clusters.id"),
         nullable=True
+    )
+
+    cluster = relationship(
+        "Cluster",
+        back_populates="articles"
     )
 
     published_at: Mapped[datetime | None] = mapped_column(

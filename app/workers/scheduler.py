@@ -32,7 +32,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     ingest_new_jobs,
     trigger="interval",
-    minutes=1,
+    minutes=15,
     id="news_ingestion",
     replace_existing=True,
 )

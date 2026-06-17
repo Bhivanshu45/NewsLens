@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.article import Article
 from app.db.models.cluster import Cluster
+from app.services.llm.groq_service import GroqService
 
 
 class ClusterService:
@@ -63,3 +64,49 @@ class ClusterService:
         )
 
         return cluster.id
+
+
+    def get_cluster_by_id(
+        self,
+        cluster_id: int,
+    ):
+        return (
+            self.db.query(Cluster)
+            .filter(
+                Cluster.id == cluster_id
+            )
+            .first()
+        )
+
+
+    def generate_cluster_summary(
+        self,
+        cluster_id: int,
+    ):
+        cluster = (
+            self.db.query(Cluster)
+            .filter(
+                Cluster.id == cluster_id
+            )
+            .first()
+        )
+
+        if not cluster:
+            return
+
+        articles = cluster.articles
+
+        if len(articles) < 2:
+            return
+
+        text = "\n\n".join(
+            article.summary or article.title
+            for article in articles
+        )
+
+        summary = (
+            GroqService()
+            .generate_cluster_summary(text)
+        )
+
+        cluster.summary = summary

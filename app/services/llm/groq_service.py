@@ -52,3 +52,35 @@ Rules:
             .content
             .strip()
         )
+    
+
+    def generate_cluster_summary(
+        self,
+        text: str
+    ) -> str:
+
+        response = self.client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+    Summarize the common event/topic covered by these news articles.
+    Return only 3-4 concise sentences.
+    """
+                }    ,
+                {
+                    "role": "user",
+                    "content": text[:8000]
+                }
+            ],
+            temperature=0.1,
+        )
+
+        return (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
