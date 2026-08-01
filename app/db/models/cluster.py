@@ -9,8 +9,6 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-from app.db.models.article import Article
-
 
 class Cluster(Base):
     __tablename__ = "clusters"

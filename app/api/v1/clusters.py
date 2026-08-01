@@ -1,16 +1,8 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-
-from sqlalchemy.orm import Session
-
-from app.api.dependencies import get_db
-
-from app.db.models.cluster import Cluster
-
-from app.services.clustering.cluster_service import (
-    ClusterService
-)
+from app.api.dependencies import get_cluster_service
+from app.services.clustering.cluster_service import ClusterService
 
 from app.services.clustering.schemas import (
     ClusterDetailResponse,
@@ -28,15 +20,9 @@ router = APIRouter(
     response_model=list[ClusterResponse]
 )
 def get_clusters(
-    db: Session = Depends(get_db)
+    service: ClusterService = Depends(get_cluster_service)
 ):
-    return (
-        db.query(Cluster)
-        .order_by(
-            Cluster.created_at.desc()
-        )
-        .all()
-    )
+    return service.list_clusters()
 
 
 @router.get(
@@ -45,10 +31,8 @@ def get_clusters(
 )
 def get_cluster(
     cluster_id: int,
-    db: Session = Depends(get_db)
+    service: ClusterService = Depends(get_cluster_service)
 ):
-    service = ClusterService(db)
-
     cluster = service.get_cluster_by_id(
         cluster_id
     )

@@ -1,15 +1,12 @@
-# Responsibility:
+import calendar
 
-# Fetch RSS Feed
-# Parse Feed
-# Return Parsed Articles
-
-# No database code.
-
-from app.core.rss_feeds import RSS_FEEDS
-from app.services.news.schemas import ParsedArticle
 import feedparser
 from dateutil import parser
+from datetime import datetime, timezone
+
+from app.core.logger import logger
+from app.core.rss_feeds import RSS_FEEDS
+from app.services.news.schemas import ParsedArticle
 
 
 class RSSService:
@@ -22,8 +19,8 @@ class RSSService:
             try:
                 feed = feedparser.parse(feed_url)
 
-            except Exception as e:
-                print(f"Failed to parse {feed_url}: {e}")
+            except Exception:
+                logger.exception("Failed to parse RSS feed %s", feed_url)
                 continue
 
             for entry in feed.entries:
@@ -36,13 +33,32 @@ class RSSService:
 
                 published_at = None
 
-                if entry.get("published"):
+                published_value = (
+                    entry.get("published")
+                    or entry.get("updated")
+                    or entry.get("pubDate")
+                )
+
+                if published_value:
                     try:
-                        published_at = parser.parse(
-                            entry.get("published")
-                        )
+                        published_at = parser.parse(published_value)
                     except Exception:
-                        pass
+                        logger.warning(
+                            "Failed to parse publication date for feed entry %s",
+                            url,
+                        )
+
+                if published_at is None:
+                    published_parsed = (
+                        entry.get("published_parsed")
+                        or entry.get("updated_parsed")
+                    )
+
+                    if published_parsed:
+                        published_at = datetime.fromtimestamp(
+                            calendar.timegm(published_parsed),
+                            tz=timezone.utc,
+                        )
 
                 articles.append(
                     ParsedArticle(

@@ -3,10 +3,9 @@ from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Query
 
-from sqlalchemy.orm import Session
-
-from app.api.dependencies import get_db
-from app.services.news.news_service import NewsService
+from app.api.dependencies import get_article_search_service
+from app.core.constants import DEFAULT_ARTICLE_LIMIT, QDRANT_SEARCH_LIMIT
+from app.services.search.article_search_service import ArticleSearchService
 from app.services.news.schemas import ArticleResponse
 
 
@@ -26,15 +25,13 @@ def get_articles(
         ge=1,
     ),
     limit: int = Query(
-        default=20,
+        default=DEFAULT_ARTICLE_LIMIT,
         ge=1,
         le=100,
     ),
     source: str | None = None,
-    db: Session = Depends(get_db),
+    service: ArticleSearchService = Depends(get_article_search_service),
 ):
-    service = NewsService(db)
-
     return service.get_articles(
         page=page,
         limit=limit,
@@ -53,14 +50,12 @@ def search_articles(
         ge=1,
     ),
     limit: int = Query(
-        default=20,
+        default=DEFAULT_ARTICLE_LIMIT,
         ge=1,
         le=100,
     ),
-    db: Session = Depends(get_db),
+    service: ArticleSearchService = Depends(get_article_search_service),
 ):
-    service = NewsService(db)
-
     return service.search_articles(
         query=q,
         page=page,
@@ -75,14 +70,12 @@ def search_articles(
 def semantic_search(
     q: str,
     limit: int = Query(
-        default=5,
+        default=QDRANT_SEARCH_LIMIT,
         ge=1,
         le=20,
     ),
-    db: Session = Depends(get_db),
+    service: ArticleSearchService = Depends(get_article_search_service),
 ):
-    service = NewsService(db)
-
     return service.semantic_search(
         query=q,
         limit=limit,
@@ -95,10 +88,8 @@ def semantic_search(
 )
 def get_article(
     article_id: int,
-    db: Session = Depends(get_db),
+    service: ArticleSearchService = Depends(get_article_search_service),
 ):
-    service = NewsService(db)
-
     article = service.get_article_by_id(
         article_id
     )

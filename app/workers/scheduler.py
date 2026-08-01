@@ -1,28 +1,28 @@
-# ingest new articles every 15 minutes
-
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.core.constants import RSS_FETCH_INTERVAL_MINUTES
+from app.core.logger import logger
+from app.core.providers import get_news_service
 from app.db.session import SessionLocal
-from app.services.news.news_service import NewsService
 
 
 def ingest_new_jobs():
     db = SessionLocal()
 
     try:
-        service = NewsService(db)
+        service = get_news_service(db)
 
         result = service.ingest_articles()
 
-        print(
-            f"[Scheduler] "
-            f"Fetched={result['fetched']} "
-            f"Inserted={result['inserted']} "
-            f"Skipped={result['skipped']}"
+        logger.info(
+            "Scheduler ingestion completed: fetched=%s inserted=%s skipped=%s",
+            result["fetched"],
+            result["inserted"],
+            result["skipped"],
         )
     
-    except Exception as e:
-        print(f"[Scheduler] Error during ingestion: {e}")
+    except Exception:
+        logger.exception("Scheduler ingestion failed")
     finally:
         db.close()
 
@@ -32,7 +32,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     ingest_new_jobs,
     trigger="interval",
-    minutes=15,
+    minutes=RSS_FETCH_INTERVAL_MINUTES,
     id="news_ingestion",
     replace_existing=True,
 )
