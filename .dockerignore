@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Node (if you have frontend later)
+node_modules/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Misc
+*.sqlite3
