@@ -1,4 +1,5 @@
 from app.core.config import settings
+from app.core.logger import logger
 
-print(settings.APP_NAME)
-print(settings.DATABASE_URL)
+logger.info("App name: %s", settings.app_name)
+logger.info("Database URL: %s", settings.database_url)

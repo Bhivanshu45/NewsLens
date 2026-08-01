@@ -1,43 +1,32 @@
 from app.db.session import SessionLocal
 
-from app.db.models.article import Article
-from app.db.models.cluster import Cluster
+from app.core.logger import logger
+from app.repositories.article_repository import ArticleRepository
+from app.repositories.cluster_repository import ClusterRepository
 
 
 def reset_clusters():
     db = SessionLocal()
+    article_repo = ArticleRepository(db)
+    cluster_repo = ClusterRepository(db)
 
     try:
-
-        updated = (
-            db.query(Article)
-            .update(
-                {
-                    Article.cluster_id: None
-                }
-            )
-        )
-
-        deleted = (
-            db.query(Cluster)
-            .delete()
-        )
+        updated = article_repo.clear_clusters()
+        deleted = cluster_repo.delete_all()
 
         db.commit()
 
-        print(
-            f"Reset complete.\n"
-            f"Articles updated: {updated}\n"
-            f"Clusters deleted: {deleted}"
+        logger.info(
+            "Reset complete. articles_updated=%s clusters_deleted=%s",
+            updated,
+            deleted,
         )
 
-    except Exception as e:
+    except Exception:
 
         db.rollback()
 
-        print(
-            f"Reset failed: {e}"
-        )
+        logger.exception("Reset failed")
 
     finally:
         db.close()

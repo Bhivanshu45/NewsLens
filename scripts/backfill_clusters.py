@@ -1,134 +1,44 @@
 from app.db.session import SessionLocal
 
-from app.db.models.article import Article
+from app.core.logger import logger
+from app.core.providers import get_cluster_service, get_embedding_service
 
-from app.services.embeddings.embedding_service import (
-    EmbeddingService,
-)
-
-from app.services.embeddings.qdrant_service import (
-    QdrantService,
-)
-
-from app.services.clustering.cluster_service import (
-    ClusterService,
-)
+from app.repositories.article_repository import ArticleRepository
 
 
 def backfill_clusters():
 
     db = SessionLocal()
 
-    embedding_service = EmbeddingService()
-    qdrant_service = QdrantService()
-
-    cluster_service = ClusterService(db)
+    article_repo = ArticleRepository(db)
+    embedding_service = get_embedding_service()
+    cluster_service = get_cluster_service(db)
 
     try:
+        articles = article_repo.list_unclustered()
 
-        articles = (
-            db.query(Article)
-            .order_by(Article.id.asc())
-            .limit(10)  # Debugging ke liye
-            .all()
-        )
-
-        print(
-            f"Found {len(articles)} articles"
-        )
+        logger.info("Found %s unclustered articles", len(articles))
 
         for article in articles:
 
-            if article.cluster_id:
-                continue
+            vector = embedding_service.generate_article_embedding(article)
 
-            text = f"""
-            Title:
-            {article.title}
-
-            Summary:
-            {article.summary or ''}
-
-            Content:
-            {article.content}
-            """
-
-            vector = (
-                embedding_service
-                .generate_embedding(text)
+            cluster_id = cluster_service.cluster_article(
+                article=article,
+                vector=vector,
             )
 
-            search_results = (
-                qdrant_service.search(
-                    vector=vector,
-                    limit=5,
-                )
-            )
-
-            similar_article = None
-            similarity_score = None
-
-            for result in search_results.points:
-
-                payload = result.payload
-
-                # Skip self
-                if (
-                    payload["article_id"]
-                    == article.id
-                ):
-                    continue
-
-                similar_article = (
-                    db.query(Article)
-                    .filter(
-                        Article.id ==
-                        payload["article_id"]
-                    )
-                    .first()
-                )
-
-                if not similar_article:
-                    continue
-
-                similarity_score = result.score
-
-                break
-
-            print(
-                f"Article={article.id}, "
-                f"Similar={similar_article.id if similar_article else None}, "
-                f"Score={similarity_score}"
-            )
-
-            cluster_id = (
-                cluster_service.assign_cluster(
-                    article=article,
-                    similar_article=similar_article,
-                    similarity_score=similarity_score,
-                )
-            )
-
-            article.cluster_id = cluster_id
-
-            print(
-                f"Article {article.id} "
-                f"-> Cluster {cluster_id}"
-            )
+            logger.info("Article %s -> Cluster %s", article.id, cluster_id)
 
         db.commit()
 
-        print(
-            "Cluster backfill completed"
-        )
+        logger.info("Cluster backfill completed")
 
-    except Exception as e:
+    except Exception:
 
         db.rollback()
 
-        print(
-            f"Backfill failed: {e}"
-        )
+        logger.exception("Backfill failed")
 
     finally:
         db.close()

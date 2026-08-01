@@ -1,15 +1,16 @@
+from app.core.logger import logger
+from app.core.providers import get_news_service
 from app.db.session import SessionLocal
-from app.services.news.news_service import NewsService
 
 
 db = SessionLocal()
 
 try:
-    service = NewsService()
+    service = get_news_service(db)
 
-    result = service.ingest_articles(db)
+    result = service.ingest_articles()
 
-    print(result)
+    logger.info("Ingestion result: %s", result)
 
 finally:
     db.close()
