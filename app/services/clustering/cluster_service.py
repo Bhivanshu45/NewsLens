@@ -1,33 +1,110 @@
-from sqlalchemy.orm import Session
-
+from app.core.logger import logger
 from app.db.models.article import Article
 from app.db.models.cluster import Cluster
-from app.services.llm.groq_service import GroqService
+
+from app.repositories.article_repository import (
+    ArticleRepository,
+)
+
+from app.repositories.cluster_repository import (
+    ClusterRepository,
+)
+
+from app.services.embeddings.qdrant_service import (
+    QdrantService,
+)
+
+from app.services.llm.groq_service import (
+    GroqService,
+)
+
+from app.core.constants import (
+    QDRANT_SEARCH_LIMIT,
+    SIMILARITY_THRESHOLD,
+)
 
 
 class ClusterService:
 
-    # V1 threshold
-    SIMILARITY_THRESHOLD = 0.70
-
-    def __init__(self, db: Session):
-        self.db = db
-
-    def create_cluster(
+    def __init__(
         self,
-        title: str,
-    ) -> Cluster:
+        article_repo: ArticleRepository,
+        cluster_repo: ClusterRepository,
+        qdrant_service: QdrantService,
+        groq_service: GroqService,
+    ):
 
-        cluster = Cluster(
-            title=title,
+        self.article_repo = article_repo
+        self.cluster_repo = cluster_repo
+        self.qdrant_service = qdrant_service
+        self.groq_service = groq_service
+
+    def list_clusters(self) -> list:
+        return self.cluster_repo.list_clusters()
+
+    def get_cluster_by_id(self, cluster_id: int) -> Cluster | None:
+        return self.cluster_repo.get_by_id(cluster_id)
+
+    def cluster_article(
+        self,
+        article: Article,
+        vector: list[float],
+    ) -> int:
+
+        payload = {
+            "article_id": article.id,
+            "title": article.title,
+            "source": article.source,
+            "url": article.url,
+        }
+
+        self.qdrant_service.upsert_article(
+            article_id=article.id,
+            vector=vector,
+            payload=payload,
         )
 
-        self.db.add(cluster)
+        results = self.qdrant_service.search(
+            vector=vector,
+            limit=QDRANT_SEARCH_LIMIT,
+        )
 
-        # cluster.id generate karwane ke liye
-        self.db.flush()
+        similar_article = None
+        similarity_score = None
 
-        return cluster
+        for result in results.points:
+
+            payload = result.payload
+
+            if payload["article_id"] == article.id:
+                continue
+
+            similar_article = (
+                self.article_repo.get_by_id(
+                    payload["article_id"]
+                )
+            )
+
+            similarity_score = result.score
+
+            break
+
+        cluster_id = self.assign_cluster(
+            article=article,
+            similar_article=similar_article,
+            similarity_score=similarity_score,
+        )
+
+        self.article_repo.update_cluster(
+            article,
+            cluster_id,
+        )
+
+        self.generate_cluster_summary(
+            cluster_id
+        )
+
+        return cluster_id
 
     def assign_cluster(
         self,
@@ -36,65 +113,43 @@ class ClusterService:
         similarity_score: float | None,
     ) -> int:
 
-        # Similar article mila aur score threshold cross karta hai
         if (
             similar_article
             and similarity_score is not None
-            and similarity_score >= self.SIMILARITY_THRESHOLD
+            and similarity_score >= SIMILARITY_THRESHOLD
         ):
 
-            # Similar article pehle se kisi cluster me hai
             if similar_article.cluster_id:
+
                 return similar_article.cluster_id
 
-            # Similar article ka cluster nahi hai
-            # To uske naam se cluster create karo
-            cluster = self.create_cluster(
-                title=similar_article.title
+            cluster = self.cluster_repo.create(
+                similar_article.title
             )
 
-            similar_article.cluster_id = cluster.id
+            self.article_repo.update_cluster(
+                similar_article,
+                cluster.id,
+            )
 
             return cluster.id
 
-        # Koi suitable cluster nahi mila
-        # Naya cluster create karo
-        cluster = self.create_cluster(
-            title=article.title
+        cluster = self.cluster_repo.create(
+            article.title
         )
 
         return cluster.id
 
-
-    def get_cluster_by_id(
-        self,
-        cluster_id: int,
-    ):
-        return (
-            self.db.query(Cluster)
-            .filter(
-                Cluster.id == cluster_id
-            )
-            .first()
-        )
-
-
     def generate_cluster_summary(
         self,
         cluster_id: int,
-    ):
-        cluster = (
-            self.db.query(Cluster)
-            .filter(
-                Cluster.id == cluster_id
+    ) -> None:
+
+        articles = (
+            self.cluster_repo.get_articles(
+                cluster_id
             )
-            .first()
         )
-
-        if not cluster:
-            return
-
-        articles = cluster.articles
 
         if len(articles) < 2:
             return
@@ -105,8 +160,23 @@ class ClusterService:
         )
 
         summary = (
-            GroqService()
-            .generate_cluster_summary(text)
+            self.groq_service
+            .generate_cluster_summary(
+                text
+            )
         )
 
-        cluster.summary = summary
+        cluster = (
+            self.cluster_repo.get_by_id(
+                cluster_id
+            )
+        )
+
+        if not cluster:
+            logger.warning("Cluster %s not found while updating summary", cluster_id)
+            return
+
+        self.cluster_repo.update_summary(
+            cluster,
+            summary,
+        )
