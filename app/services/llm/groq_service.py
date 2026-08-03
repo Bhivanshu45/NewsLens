@@ -5,11 +5,15 @@ from app.core.constants import (
     MAX_ARTICLE_INPUT_LENGTH,
     GROQ_MODEL,
     SUMMARY_TEMPERATURE,
+    CHAT_TEMPERATURE,
+    
 )
 from app.services.llm.prompts import (
     ARTICLE_SUMMARY_PROMPT,
     CLUSTER_SUMMARY_PROMPT,
+    CHAT_SYSTEM_PROMPT,
 )
+
 
 class GroqService:
 
@@ -20,7 +24,7 @@ class GroqService:
 
     def generate_summary(
         self,
-        article_content: str
+        article_content: str,
     ) -> str:
 
         article_content = article_content[:MAX_ARTICLE_INPUT_LENGTH]
@@ -30,12 +34,12 @@ class GroqService:
             messages=[
                 {
                     "role": "system",
-                    "content": ARTICLE_SUMMARY_PROMPT
+                    "content": ARTICLE_SUMMARY_PROMPT,
                 },
                 {
                     "role": "user",
-                    "content": article_content
-                }
+                    "content": article_content,
+                },
             ],
             temperature=SUMMARY_TEMPERATURE,
         )
@@ -47,11 +51,10 @@ class GroqService:
             .content
             .strip()
         )
-    
 
     def generate_cluster_summary(
         self,
-        text: str
+        text: str,
     ) -> str:
 
         text = text[:MAX_ARTICLE_INPUT_LENGTH]
@@ -61,14 +64,42 @@ class GroqService:
             messages=[
                 {
                     "role": "system",
-                    "content": CLUSTER_SUMMARY_PROMPT
+                    "content": CLUSTER_SUMMARY_PROMPT,
                 },
                 {
                     "role": "user",
-                    "content": text
-                }
+                    "content": text,
+                },
             ],
             temperature=SUMMARY_TEMPERATURE,
+        )
+
+        return (
+            response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+    def generate_chat_completion(
+        self,
+        prompt: str,
+    ) -> str:
+
+        response = self.client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": CHAT_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=CHAT_TEMPERATURE,
         )
 
         return (

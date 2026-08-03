@@ -2,7 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.core.config import settings
-from app.core.constants import EMBEDDING_DIMENSION, QDRANT_COLLECTION, QDRANT_SEARCH_LIMIT
+from app.core.constants import EMBEDDING_DIMENSION, QDRANT_COLLECTION, QDRANT_SEARCH_LIMIT, QDRANT_SCORE_THRESHOLD
 
 
 class QdrantService:
@@ -70,4 +70,5 @@ class QdrantService:
             collection_name=QDRANT_COLLECTION,
             query=vector,
             limit=limit,
+            score_threshold=QDRANT_SCORE_THRESHOLD,
         )
