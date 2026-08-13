@@ -20,6 +20,10 @@ The full architecture guide lives in [ARCHITECTURE.md](ARCHITECTURE.md).
 2. Run migrations with Alembic.
 3. Start the FastAPI app with Uvicorn.
 
+## Deployed Links
+Backend: https://newslens-zliy.onrender.com
+Frontend: https://newslens-eight.vercel.app
+
 ## Docker
 
 Use `docker compose up --build` to start the app, PostgreSQL, Redis, and Qdrant.
