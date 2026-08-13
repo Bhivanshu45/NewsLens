@@ -10,7 +10,6 @@ redis
 qdrant-client
 groq
 google-generativeai
-sentence-transformers
 feedparser
 python-dotenv
 python-multipart
@@ -19,3 +18,6 @@ httpx
 apscheduler
 jinja2
 typer
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers
