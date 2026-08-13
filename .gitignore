@@ -11,6 +11,11 @@ venv/
 env/
 ENV/
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
 # =========================
 # Environment Variables
 # =========================
