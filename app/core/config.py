@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     qdrant_api_key: str
 
     groq_api_key: str
-    frontend_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
