@@ -13,6 +13,7 @@ google-generativeai
 feedparser
 python-dotenv
 python-multipart
+python-dateutil
 requests
 httpx
 apscheduler
