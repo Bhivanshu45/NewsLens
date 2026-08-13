@@ -6,9 +6,13 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+    # upstash_redis_rest_url: str
+    # upstash_redis_rest_token: str
     qdrant_url: str
+    qdrant_api_key: str
 
     groq_api_key: str
+    frontend_url: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

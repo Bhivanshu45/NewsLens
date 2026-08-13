@@ -11,6 +11,10 @@ from app.core.constants import API_PREFIX
 from app.core.logger import logger
 from app.workers.scheduler import scheduler
 
+from app.core.config import settings
+
+from fastapi.middleware.cors import CORSMiddleware
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
@@ -29,6 +33,16 @@ app = FastAPI(
     title="NewsLens - AI News Intelligence",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        settings.frontend_url,
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")

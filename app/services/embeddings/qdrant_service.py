@@ -9,7 +9,8 @@ class QdrantService:
 
     def __init__(self):
         self.client = QdrantClient(
-            url=settings.qdrant_url
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
         )
         self._collection_ready = False
 
