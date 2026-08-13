@@ -37,8 +37,8 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
-    "https://*.vercel.app",  # Temporary wildcard for Vercel previews
-    "*"                      # Ya temporary sab allow kar do launch testing ke liye
+    "https://newslens-eight.vercel.app",  # Temporary wildcard for Vercel previews
+               # Ya temporary sab allow kar do launch testing ke liye
 ]
 app.add_middleware(
     CORSMiddleware,
